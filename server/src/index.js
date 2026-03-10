@@ -17,6 +17,9 @@ const { authLimiter } = require('./middleware/rateLimit');
 const app = express();
 const httpServer = http.createServer(app);
 
+// ─── Trust Proxy (required for Render, Railway, etc.) ─────────────
+app.set('trust proxy', 1);
+
 // ─── CORS ──────────────────────────────────────────────────────────
 const corsOptions = {
     origin: process.env.CLIENT_URL || 'http://localhost:5173',
