@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+  html { -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #0a0a0f;
+    color: #f1f5f9;
+    overscroll-behavior: none;
+  }
+}
+
+@layer utilities {
+  .btn-3d {
+    box-shadow: 0 6px 0 rgba(0, 0, 0, 0.4);
+    transition: box-shadow 75ms, transform 75ms;
+  }
+  .btn-3d:active {
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.4);
+    transform: translateY(4px);
+  }
+  .glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .status-waiting      { @apply bg-slate-700 text-slate-200; }
+  .status-called       { @apply bg-blue-600 text-white; }
+  .status-present      { @apply bg-green-600 text-white; }
+  .status-in_consultation { @apply bg-emerald-500 text-white; }
+  .status-penalized    { @apply bg-amber-600 text-white; }
+  .status-no_show      { @apply bg-red-700 text-white; }
+  .status-completed    { @apply bg-gray-600 text-gray-300; }
+  .status-on_hold      { @apply bg-orange-600 text-white; }
+}
+
+/* Emergency pulse animation */
+@keyframes emergencyPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(124, 60, 152, 0); }
+  50%       { box-shadow: 0 0 0 12px rgba(124, 60, 152, 0.4); }
+}
+.emergency-pulse { animation: emergencyPulse 1.2s ease-in-out infinite; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #0a0a0f; }
+::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }

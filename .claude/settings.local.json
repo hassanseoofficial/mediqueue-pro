@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(node create-superadmin.js:*)",
+      "Bash(npm run migrate:*)",
+      "Bash(node src/db/create-superadmin.js:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

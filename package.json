@@ -1,0 +1,17 @@
+{
+  "name": "mediqueue-pro",
+  "version": "3.0.0",
+  "description": "Real-time medical queue & appointment ticketing system",
+  "private": true,
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=server\" \"npm run dev --workspace=client\"",
+    "install:all": "npm install && npm install --workspace=server && npm install --workspace=client"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
