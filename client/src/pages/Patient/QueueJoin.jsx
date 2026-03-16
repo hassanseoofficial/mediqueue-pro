@@ -175,7 +175,7 @@ const QueueJoin = () => {
                                     <div className="flex justify-between items-center">
                                         <div>
                                             <p className="text-white font-semibold">{doc.name}</p>
-                                            {doc.specialty && <p className="text-gray-400 text-xs">{doc.specialty}</p>}
+                                            {doc.specialization && <p className="text-gray-400 text-xs">{doc.specialization}</p>}
                                         </div>
                                         <div className="text-right">
                                             {doc.is_full ? (
@@ -195,7 +195,7 @@ const QueueJoin = () => {
                 {clinicData?.doctors?.length === 1 && (
                     <p className="text-center text-gray-400 text-sm mb-4">
                         Doctor: <span className="text-white font-semibold">{selectedDoctor?.name}</span>
-                        {selectedDoctor?.specialty && <span className="text-gray-500"> · {selectedDoctor.specialty}</span>}
+                        {selectedDoctor?.specialization && <span className="text-gray-500"> · {selectedDoctor.specialization}</span>}
                     </p>
                 )}
 

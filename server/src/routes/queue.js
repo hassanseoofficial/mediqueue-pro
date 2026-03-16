@@ -33,7 +33,7 @@ router.get('/clinic/:slug', publicLimiter, async (req, res) => {
 
         // Get active doctors for this clinic
         const doctorsResult = await query(
-            `SELECT d.id, d.name, d.specialty, d.avatar_url,
+            `SELECT d.id, d.name, d.specialization,
                     dt.session_start, dt.session_end, dt.max_patients, dt.buffer_slots
              FROM doctors d
              LEFT JOIN doctor_thresholds dt ON dt.doctor_id = d.id
