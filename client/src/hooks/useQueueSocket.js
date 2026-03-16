@@ -2,7 +2,8 @@ import { useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { useQueueStore } from '../store/queueStore';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001';
+// Use same URL as API, fallback to localhost for dev
+const SOCKET_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001';
 
 export const useQueueSocket = (clinicId, doctorId) => {
     const { setQueue, setCurrentServing, setThreshold, addEmergencyToken, setIsPaused, updateToken, token } = useQueueStore();
