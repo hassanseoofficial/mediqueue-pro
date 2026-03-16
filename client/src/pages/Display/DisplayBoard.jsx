@@ -4,16 +4,42 @@ import { queueApi } from '../../hooks/useQueueActions';
 import { useDisplaySocket } from '../../hooks/useQueueSocket';
 
 const DisplayBoard = () => {
-    const { clinicId = '1', doctorId = '1' } = useParams();
+    const { clinicId: clinicIdParam, doctorId: doctorIdParam } = useParams();
     const [data, setData] = useState(null);
     const [emergencyActive, setEmergencyActive] = useState(false);
+    const [clinicInfo, setClinicInfo] = useState(null);
+    const [doctorInfo, setDoctorInfo] = useState(null);
+
+    // Determine if clinicIdParam is a slug (non-numeric) or ID
+    const isSlug = clinicIdParam && isNaN(Number(clinicIdParam));
+    const [resolvedClinicId, setResolvedClinicId] = useState(isSlug ? null : (clinicIdParam || '1'));
+    const [resolvedDoctorId, setResolvedDoctorId] = useState(doctorIdParam || '1');
+
+    // Resolve slug to clinic ID and fetch info
+    useEffect(() => {
+        if (isSlug && clinicIdParam) {
+            queueApi.clinicBySlug(clinicIdParam)
+                .then(res => {
+                    setClinicInfo(res.data.clinic);
+                    setResolvedClinicId(res.data.clinic.id);
+                    // If doctorIdParam provided, find that doctor
+                    const doctor = res.data.doctors?.find(d => String(d.id) === doctorIdParam) || res.data.doctors?.[0];
+                    if (doctor) {
+                        setDoctorInfo(doctor);
+                        setResolvedDoctorId(doctor.id);
+                    }
+                })
+                .catch(() => {});
+        }
+    }, [clinicIdParam, doctorIdParam, isSlug]);
 
     const fetchDisplay = useCallback(async () => {
+        if (!resolvedClinicId || !resolvedDoctorId) return;
         try {
-            const res = await queueApi.display(clinicId, doctorId);
+            const res = await queueApi.display(resolvedClinicId, resolvedDoctorId);
             setData(res.data);
         } catch { }
-    }, [clinicId, doctorId]);
+    }, [resolvedClinicId, resolvedDoctorId]);
 
     useEffect(() => {
         fetchDisplay();
@@ -21,7 +47,7 @@ const DisplayBoard = () => {
         return () => clearInterval(interval);
     }, [fetchDisplay]);
 
-    useDisplaySocket(clinicId, doctorId, (update) => {
+    useDisplaySocket(resolvedClinicId, resolvedDoctorId, (update) => {
         fetchDisplay();
         if (update?.is_emergency) {
             setEmergencyActive(true);
@@ -59,8 +85,8 @@ const DisplayBoard = () => {
             {/* Header */}
             <div className="flex items-center justify-between px-10 py-6 border-b border-white/5">
                 <div>
-                    <p className="text-white/40 text-sm uppercase tracking-widest">City Medical Center</p>
-                    <p className="text-white font-bold text-lg">Queue Display — Dr. Ahmed Khan</p>
+                    <p className="text-white/40 text-sm uppercase tracking-widest">{clinicInfo?.name || 'Clinic'}</p>
+                    <p className="text-white font-bold text-lg">Queue Display — {doctorInfo?.name || 'Doctor'}</p>
                 </div>
                 <div className="text-right">
                     <p className="text-white/40 text-xs uppercase tracking-widest">Slots Remaining</p>

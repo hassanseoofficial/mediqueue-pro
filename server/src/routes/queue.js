@@ -13,6 +13,108 @@ const smsService = require('../services/sms');
 
 const router = express.Router();
 
+// ─── GET /api/queue/clinic/:slug ─────────────────────────────────
+// Lookup clinic by slug and return clinic info with doctors
+router.get('/clinic/:slug', publicLimiter, async (req, res) => {
+    try {
+        const { slug } = req.params;
+
+        // Get clinic by slug
+        const clinicResult = await query(
+            'SELECT id, name, slug, address, phone FROM clinics WHERE slug = $1',
+            [slug]
+        );
+
+        if (!clinicResult.rows.length) {
+            return res.status(404).json({ error: 'Clinic not found', slug });
+        }
+
+        const clinic = clinicResult.rows[0];
+
+        // Get active doctors for this clinic
+        const doctorsResult = await query(
+            `SELECT d.id, d.name, d.specialty, d.avatar_url,
+                    dt.session_start, dt.session_end, dt.max_patients, dt.buffer_slots
+             FROM doctors d
+             LEFT JOIN doctor_thresholds dt ON dt.doctor_id = d.id
+             WHERE d.clinic_id = $1 AND d.is_active = TRUE
+             ORDER BY d.name`,
+            [clinic.id]
+        );
+
+        // Get current threshold usage for each doctor
+        const doctors = await Promise.all(doctorsResult.rows.map(async (doc) => {
+            const redisKey = `clinic:${clinic.id}:doctor:${doc.id}:threshold_count`;
+            const used = parseInt(await redis.get(redisKey)) || 0;
+            const maxAllowed = doc.max_patients ? doc.max_patients - (doc.buffer_slots || 0) : null;
+
+            return {
+                ...doc,
+                slots_used: used,
+                slots_remaining: maxAllowed ? Math.max(0, maxAllowed - used) : null,
+                is_full: maxAllowed ? used >= maxAllowed : false,
+            };
+        }));
+
+        res.json({
+            clinic: {
+                id: clinic.id,
+                name: clinic.name,
+                slug: clinic.slug,
+                address: clinic.address,
+                phone: clinic.phone,
+            },
+            doctors,
+        });
+    } catch (err) {
+        console.error('Clinic lookup error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// ─── GET /api/queue/clinic/:slug/urls ────────────────────────────
+// Get all dynamic URLs for a clinic (for admin display)
+router.get('/clinic/:slug/urls', publicLimiter, async (req, res) => {
+    try {
+        const { slug } = req.params;
+
+        const clinicResult = await query(
+            'SELECT id, name, slug FROM clinics WHERE slug = $1',
+            [slug]
+        );
+
+        if (!clinicResult.rows.length) {
+            return res.status(404).json({ error: 'Clinic not found' });
+        }
+
+        const clinic = clinicResult.rows[0];
+
+        const doctorsResult = await query(
+            'SELECT id, name FROM doctors WHERE clinic_id = $1 AND is_active = TRUE ORDER BY name',
+            [clinic.id]
+        );
+
+        const baseUrl = process.env.CLIENT_URL || '';
+
+        const urls = {
+            clinic: clinic.name,
+            slug: clinic.slug,
+            patient_queue: `${baseUrl}/queue/${clinic.slug}`,
+            doctors: doctorsResult.rows.map(doc => ({
+                doctor_id: doc.id,
+                doctor_name: doc.name,
+                display_board: `${baseUrl}/display/${clinic.id}/${doc.id}`,
+                display_board_by_slug: `${baseUrl}/display/${clinic.slug}/${doc.id}`,
+            })),
+        };
+
+        res.json(urls);
+    } catch (err) {
+        console.error('URLs lookup error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 // ─── Helpers ─────────────────────────────────────────────────────
 
 const activeQueue = async (clinicId, doctorId) => {

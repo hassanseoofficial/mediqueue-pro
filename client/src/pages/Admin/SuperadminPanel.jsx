@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { adminApi } from '../../hooks/useQueueActions';
+import { adminApi, queueApi } from '../../hooks/useQueueActions';
 import { useQueueStore } from '../../store/queueStore';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -146,9 +146,123 @@ const EditClinicModal = ({ clinic, onClose, onSaved }) => {
     );
 };
 
+// ─── Clinic URLs Modal ────────────────────────────────────────────────────────
+
+const ClinicUrlsModal = ({ clinic, onClose }) => {
+    const [urls, setUrls] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const baseUrl = window.location.origin;
+
+    useEffect(() => {
+        queueApi.clinicUrls(clinic.slug)
+            .then(res => setUrls(res.data))
+            .catch(err => setError(err.response?.data?.error || 'Failed to load URLs'))
+            .finally(() => setLoading(false));
+    }, [clinic.slug]);
+
+    const copyToClipboard = (url) => {
+        navigator.clipboard.writeText(url);
+    };
+
+    const UrlRow = ({ label, url, description }) => (
+        <div className="bg-gray-900/50 rounded-xl p-3 border border-white/5">
+            <p className="text-xs text-gray-400 font-semibold mb-1">{label}</p>
+            <div className="flex items-center gap-2">
+                <code className="flex-1 text-sm text-green-400 font-mono break-all">{url}</code>
+                <button
+                    onClick={() => copyToClipboard(url)}
+                    className="text-xs px-2 py-1 rounded bg-gray-800 text-gray-300 hover:bg-gray-700 shrink-0"
+                >
+                    Copy
+                </button>
+                <a href={url} target="_blank" rel="noopener noreferrer"
+                    className="text-xs px-2 py-1 rounded bg-blue-800 text-blue-200 hover:bg-blue-700 shrink-0">
+                    Open
+                </a>
+            </div>
+            {description && <p className="text-xs text-gray-600 mt-1">{description}</p>}
+        </div>
+    );
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm px-4">
+            <div className="bg-gray-950 border border-white/10 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 sticky top-0 bg-gray-950">
+                    <div>
+                        <h2 className="text-white font-bold text-lg">🔗 Dynamic URLs</h2>
+                        <p className="text-gray-400 text-xs">{clinic.name}</p>
+                    </div>
+                    <button onClick={onClose} className="text-gray-500 hover:text-white text-xl">✕</button>
+                </div>
+
+                <div className="p-5 space-y-4">
+                    {loading ? (
+                        <div className="text-center py-8">
+                            <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto" />
+                        </div>
+                    ) : error ? (
+                        <div className="bg-red-900/40 border border-red-700 rounded-lg px-3 py-2 text-red-300 text-sm">{error}</div>
+                    ) : urls ? (
+                        <>
+                            <div>
+                                <p className="text-xs text-purple-400 font-semibold uppercase tracking-wider mb-2">Patient Queue Page</p>
+                                <UrlRow
+                                    label="Patient Ticket Page"
+                                    url={`${baseUrl}/queue/${clinic.slug}`}
+                                    description="Share this URL with patients to get queue tickets"
+                                />
+                            </div>
+
+                            {urls.doctors?.length > 0 && (
+                                <div>
+                                    <p className="text-xs text-purple-400 font-semibold uppercase tracking-wider mb-2">Display Boards (Per Doctor)</p>
+                                    <div className="space-y-2">
+                                        {urls.doctors.map(doc => (
+                                            <UrlRow
+                                                key={doc.doctor_id}
+                                                label={`TV Display - ${doc.doctor_name}`}
+                                                url={`${baseUrl}/display/${clinic.slug}/${doc.doctor_id}`}
+                                                description="Show this on waiting room TV"
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div>
+                                <p className="text-xs text-purple-400 font-semibold uppercase tracking-wider mb-2">Admin & Login</p>
+                                <div className="space-y-2">
+                                    <UrlRow
+                                        label="Admin Login"
+                                        url={`${baseUrl}/login`}
+                                        description="Admin and doctor login page"
+                                    />
+                                    <UrlRow
+                                        label="Admin Dashboard"
+                                        url={`${baseUrl}/admin`}
+                                        description="Queue management dashboard"
+                                    />
+                                </div>
+                            </div>
+
+                            {urls.doctors?.length === 0 && (
+                                <div className="bg-yellow-900/30 border border-yellow-700 rounded-xl p-4">
+                                    <p className="text-yellow-300 text-sm font-semibold">No doctors added yet</p>
+                                    <p className="text-yellow-400/70 text-xs mt-1">Add doctors in the Doctors management page to generate display board URLs.</p>
+                                </div>
+                            )}
+                        </>
+                    ) : null}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // ─── Clinic Card ──────────────────────────────────────────────────────────────
 
-const ClinicCard = ({ clinic, onEdit }) => (
+const ClinicCard = ({ clinic, onEdit, onViewUrls }) => (
     <div className={`glass rounded-2xl p-4 border ${clinic.is_active ? 'border-white/10' : 'border-red-800/30 opacity-60'}`}>
         <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
@@ -161,9 +275,14 @@ const ClinicCard = ({ clinic, onEdit }) => (
                 <p className="text-xs text-purple-400 mt-0.5 font-mono">/{clinic.slug}</p>
                 {clinic.address && <p className="text-xs text-gray-500 mt-1">{clinic.address}</p>}
             </div>
-            <button onClick={() => onEdit(clinic)} className="text-xs px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 font-bold shrink-0">
-                Edit ✏
-            </button>
+            <div className="flex gap-2 shrink-0">
+                <button onClick={() => onViewUrls(clinic)} className="text-xs px-3 py-1.5 rounded-lg bg-blue-800 text-blue-200 hover:bg-blue-700 font-bold">
+                    🔗 URLs
+                </button>
+                <button onClick={() => onEdit(clinic)} className="text-xs px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 font-bold">
+                    Edit ✏
+                </button>
+            </div>
         </div>
         <div className="mt-3 flex gap-4 text-xs text-gray-400">
             <span>🩺 {clinic.doctor_count || 0} doctors</span>
@@ -191,6 +310,7 @@ const SuperadminPanel = () => {
     const [loading, setLoading] = useState(true);
     const [showCreate, setShowCreate] = useState(false);
     const [editClinic, setEditClinic] = useState(null);
+    const [urlsClinic, setUrlsClinic] = useState(null);
     const [error, setError] = useState('');
 
     const loadClinics = useCallback(async () => {
@@ -250,7 +370,7 @@ const SuperadminPanel = () => {
                         <p className="text-gray-600 text-sm mt-1">Create the first clinic to get started</p>
                     </div>
                 ) : (
-                    clinics.map(c => <ClinicCard key={c.id} clinic={c} onEdit={setEditClinic} />)
+                    clinics.map(c => <ClinicCard key={c.id} clinic={c} onEdit={setEditClinic} onViewUrls={setUrlsClinic} />)
                 )}
 
                 {/* How to onboard guide */}
@@ -268,6 +388,7 @@ const SuperadminPanel = () => {
 
             {showCreate && <CreateClinicModal onClose={() => setShowCreate(false)} onCreated={loadClinics} />}
             {editClinic && <EditClinicModal clinic={editClinic} onClose={() => setEditClinic(null)} onSaved={loadClinics} />}
+            {urlsClinic && <ClinicUrlsModal clinic={urlsClinic} onClose={() => setUrlsClinic(null)} />}
         </div>
     );
 };

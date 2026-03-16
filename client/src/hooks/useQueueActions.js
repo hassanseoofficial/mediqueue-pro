@@ -61,6 +61,8 @@ export const queueApi = {
     status: (tokenId) => api.get(`/queue/status/${tokenId}`),
     display: (clinicId, doctorId) => api.get(`/queue/display/${clinicId}/${doctorId}`),
     threshold: (doctorId) => api.get(`/queue/threshold/${doctorId}`),
+    clinicBySlug: (slug) => api.get(`/queue/clinic/${slug}`),
+    clinicUrls: (slug) => api.get(`/queue/clinic/${slug}/urls`),
 };
 
 export const authApi = {
