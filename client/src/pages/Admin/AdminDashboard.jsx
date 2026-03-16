@@ -73,15 +73,26 @@ const AdminDashboard = () => {
     const { user, queue, currentToken, threshold, hasEmergency, isPaused } = useQueueStore();
     const actions = useQueueActions();
     const [emergencyModalOpen, setEmergencyModalOpen] = useState(false);
-    const [doctorId, setDoctorId] = useState(paramDoctor || user?.doctor_id || 1);
-    const [clinicId, setClinicId] = useState(paramClinic || user?.clinic_id || 1);
+    const [doctorId, setDoctorId] = useState(paramDoctor || null);
+    const [clinicId, setClinicId] = useState(paramClinic || null);
     const [loading, setLoading] = useState(false);
+
+    // Update clinic/doctor IDs when user loads
+    useEffect(() => {
+        if (!clinicId && user?.clinic_id) {
+            setClinicId(user.clinic_id);
+        }
+        if (!doctorId && user?.doctor_id) {
+            setDoctorId(user.doctor_id);
+        }
+    }, [user, clinicId, doctorId]);
 
     // Connect Socket.IO and get live queue
     useQueueSocket(clinicId, doctorId);
 
     // Load initial queue on mount
     useEffect(() => {
+        if (!doctorId) return;
         actions.getQueue(doctorId).then(res => {
             useQueueStore.getState().setQueue(res.data);
         }).catch(() => { });

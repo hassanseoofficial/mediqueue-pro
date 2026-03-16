@@ -12,8 +12,8 @@ const DisplayBoard = () => {
 
     // Determine if clinicIdParam is a slug (non-numeric) or ID
     const isSlug = clinicIdParam && isNaN(Number(clinicIdParam));
-    const [resolvedClinicId, setResolvedClinicId] = useState(isSlug ? null : (clinicIdParam || '1'));
-    const [resolvedDoctorId, setResolvedDoctorId] = useState(doctorIdParam || '1');
+    const [resolvedClinicId, setResolvedClinicId] = useState(isSlug ? null : (clinicIdParam || null));
+    const [resolvedDoctorId, setResolvedDoctorId] = useState(doctorIdParam || null);
 
     // Resolve slug to clinic ID and fetch info
     useEffect(() => {
